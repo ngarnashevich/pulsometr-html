@@ -1,64 +1,123 @@
-const gulp        = require('gulp');
-const browserSync = require('browser-sync');
-const sass        = require('gulp-sass');
-const cleanCSS = require('gulp-clean-css');
-const autoprefixer = require('gulp-autoprefixer');
-const rename = require("gulp-rename");
-const imagemin = require('gulp-imagemin');
-const htmlmin = require('gulp-htmlmin');
+const gulp = require("gulp");
+const browserSync = require("browser-sync").create();
+const watch = require("gulp-watch");
+const sass = require("gulp-sass");
+const autoprefixer = require("gulp-autoprefixer");
+const sourcemaps = require("gulp-sourcemaps");
+const notify = require("gulp-notify");
+const plumber = require("gulp-plumber");
+const fileinclude = require("gulp-file-include");
+const del = require("del");
 
-gulp.task('server', function() {
-
-    browserSync({
-        server: {
-            baseDir: "dist"
-        }
-    });
-
-    gulp.watch("src/*.html").on('change', browserSync.reload);
+// Task for HTML
+gulp.task("html", function (callback) {
+	return gulp
+		.src("./src/html/pages/*.html")
+		.pipe(
+			plumber({
+				errorHandler: notify.onError(function (err) {
+					return {
+						title: "HTML include",
+						sound: false,
+						message: err.message
+					};
+				})
+			})
+		)
+		.pipe(fileinclude({ prefix: "@@" }))
+		.pipe(gulp.dest("./build/"))
+		.pipe(browserSync.stream());
+	callback();
 });
 
-gulp.task('styles', function() {
-    return gulp.src("src/sass/**/*.+(scss|sass)")
-        .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
-        .pipe(rename({suffix: '.min', prefix: ''}))
-        .pipe(autoprefixer())
-        .pipe(cleanCSS({compatibility: 'ie8'}))
-        .pipe(gulp.dest("dist/css"))
-        .pipe(browserSync.stream());
+// Task for  SCSS in CSS
+gulp.task("scss", function (callback) {
+	return gulp
+		.src("./src/scss/main.scss")
+		.pipe(
+			plumber({
+				errorHandler: notify.onError(function (err) {
+					return {
+						title: "Styles",
+						sound: false,
+						message: err.message
+					};
+				})
+			})
+		)
+		.pipe(sourcemaps.init())
+		.pipe(sass())
+		.pipe(
+			autoprefixer({
+				overrideBrowserslist: ["last 4 versions"]
+			})
+		)
+		.pipe(sourcemaps.write())
+		.pipe(gulp.dest("./build/css/"))
+		.pipe(browserSync.stream());
+	callback();
 });
 
-gulp.task('watch', function() {
-    gulp.watch("src/sass/**/*.+(scss|sass|css)", gulp.parallel('styles'));
-    gulp.watch("src/*.html").on('change', gulp.parallel('html'));
-    gulp.watch("src/img/**/*").on('change', gulp.parallel('images'));
+// Copy Images
+gulp.task("copy:img", function (callback) {
+	return gulp.src("./src/img/**/*.*").pipe(gulp.dest("./build/img/"));
+	callback();
 });
 
-gulp.task('html', function () {
-    return gulp.src("src/*.html")
-        .pipe(htmlmin({ collapseWhitespace: true }))
-        .pipe(gulp.dest("dist/"));
+// Copy JS
+gulp.task("copy:js", function (callback) {
+	return gulp.src("./src/js/**/*.*").pipe(gulp.dest("./build/js/"));
+	callback();
 });
 
-gulp.task('scripts', function () {
-    return gulp.src("src/js/**/*.js")
-        .pipe(gulp.dest("dist/js"));
+// Copy Fonts
+gulp.task("copy:fonts", function (callback) {
+	return gulp.src("./src/fonts/**/*.*").pipe(gulp.dest("./build/fonts/"));
+	callback();
 });
 
-gulp.task('fonts', function () {
-    return gulp.src("src/fonts/**/*")
-        .pipe(gulp.dest("dist/fonts"));
+// Watch for HTML and CSS and reload browser
+gulp.task("watch", function () {
+	// Watch for js and image files
+	watch(
+		["./build/js/**/*.*", "./build/img/**/*.*"],
+		gulp.parallel(browserSync.reload)
+	);
+
+	// Watch for SCSS and compile  
+	watch("./src/scss/**/*.scss", function () {
+		setTimeout(gulp.parallel("scss"), 500);
+	});
+
+	// Watch for html build
+	watch("./src/html/**/*.html", gulp.parallel("html"));
+
+	// Watch for images and js, fonts files and copy to the build directory
+	watch("./src/img/**/*.*", gulp.parallel("copy:img"));
+	watch("./src/js/**/*.*", gulp.parallel("copy:js"));
+	watch("./src/fonts/**/*.*", gulp.parallel("copy:fonts"));
 });
 
-gulp.task('mailer', function () {
-    return gulp.src("src/mailer/**/*")
-        .pipe(gulp.dest("dist/mailer"));
+// Task for start server in folder src
+gulp.task("server", function () {
+	browserSync.init({
+		server: {
+			baseDir: "./build/"
+		}
+	});
 });
 
-gulp.task('images', function () {
-    return gulp.src("src/img/**/*")
-        .pipe(imagemin())
-        .pipe(gulp.dest("dist/img"));
+gulp.task("clean:build", function () {
+	return del("./build");
 });
 
-gulp.task('default', gulp.parallel('watch', 'server', 'styles', 'scripts', 'fonts', 'images', 'mailer', 'html',));
+// Default Task
+// start task server and watch
+gulp.task(
+	"default",
+	gulp.series(
+		gulp.parallel("clean:build"),
+		gulp.parallel("scss", "html", "copy:img", "copy:js", "copy:fonts"),
+		gulp.parallel("server", "watch")
+	)
+);
