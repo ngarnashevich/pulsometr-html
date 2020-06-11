@@ -32,10 +32,10 @@
 			margin: 0 auto;
 		}
 	}
-	.catalog{
+	.catalog {
 		padding-top: 100px;
 
-		&__content{
+		&__content {
 			justify-content: space-around;
 		}
 	}
@@ -90,25 +90,31 @@
 		}
 	}
 
-	.catalog{
+	.catalog {
 		.catalog__tab {
 			width: 125px;
 			font-size: 9px;
 		}
 	}
 
-	.feedback{
-		&__img{
+	.feedback {
+		&__img {
 			margin-bottom: 20px;
 		}
-		&__item{
+		&__item {
 			flex-direction: column;
 			align-items: center;
 			text-align: center;
 			margin-bottom: 100px;
 		}
-		&__desc{
+		&__desc {
 			text-align: left;
 		}
 	}
+	.footer{
+		&__info{
+			width: 100%;
+		}
+	}
+	
 }
