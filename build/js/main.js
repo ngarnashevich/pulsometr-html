@@ -65,4 +65,15 @@ $(document).ready(function () {
 
 	toggleSlide(".catalog-item__more");
 	toggleSlide(".catalog-item__back");
+
+
+	$('[data-modal=consultation]').on('click', function () {
+		$('.overlay, #consultation').fadeIn('slow');
+	});
+	$('[data-modal=order]').on('click', function () {
+		$('.overlay, #order').fadeIn('slow');
+	});
+	$('.modal__close').on('click', function () {
+		$('.overlay, #order, #consultation, #thanks').fadeOut('slow');
+	});
 });
